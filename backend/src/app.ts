@@ -2,11 +2,19 @@ import cors from "cors";
 import express, { type ErrorRequestHandler } from "express";
 import { env } from "./config/env.js";
 import { healthRouter } from "./modules/health/health.routes.js";
+import { sessionsRouter } from "./modules/sessions/sessions.routes.js";
 
 export const app = express();
 
 app.disable("x-powered-by");
-app.use(cors({ origin: env.corsOrigins }));
+app.use(
+  cors({
+    origin: env.corsOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/", (_request, response) => {
@@ -18,9 +26,13 @@ app.get("/", (_request, response) => {
 });
 
 app.use("/api/health", healthRouter);
+app.use("/api/v1/sessions", sessionsRouter);
 
 app.use((_request, response) => {
-  response.status(404).json({ error: "Not found" });
+  response.status(404).json({
+    success: false,
+    error: "Not found",
+  });
 });
 
 const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
@@ -37,6 +49,7 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => 
       : 500;
 
   response.status(status).json({
+    success: false,
     error: status < 500 ? "Invalid request" : "Internal server error",
   });
 };
